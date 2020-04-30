@@ -1,4 +1,4 @@
-# Implementation Details (WIP)
+# Implementation Details
 
 ## Table of Contents <!-- omit in toc -->
 
@@ -36,7 +36,6 @@
     - [Example for Assets](#example-for-assets)
     - [Example for Loaders](#example-for-loaders)
     - [Example for Importers](#example-for-importers)
-- [Integration with the Engine](#integration-with-the-engine)
 
 ---
 
@@ -969,14 +968,6 @@ impl Importer for RonImporter {
     }
 }
 ```
-
-## Integration with the Engine
-
-*This section is currently WIP.*
-
-- All registries are inserted into the world as resources.
-- `AssetLoadSystem` polls on the futures from the loaders.
-- `AssetImportSystem` polls on the futures from the importers.
 
 <!-- Links -->
 [`atelier-assets`]: https://github.com/amethyst/atelier-assets

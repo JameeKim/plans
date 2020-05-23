@@ -1,0 +1,46 @@
+@startuml PackedAsset
+
+!include ../style.pu
+
+MODULE_TITLE("packed_asset")
+
+!startsub PACKED_ASSET
+
+class PackedAssetSource <<struct>> {
+  - name: String
+  - loaded: PackedAsset
+  --
+  + {static} async new(path: &Path): Self? {\n  let file = fs::read(path)?;\n  let loaded = bincode::deserialize(file)?;\n  let name = path.file_name().without_extension();\n  PackedAssetSource { name, loaded }\n}
+  --
+  impl Source
+  + {static} const SCHEMES = &["x-moya-asset"]
+  + supports_path(&self, path: &Url): bool {\n  path.host() == self.name\n}
+}
+
+class PackedAsset <<dataType>>
+class PackedAsset <<dataType>> {
+  + path_to_asset: Map<Url, Range>
+  + id_to_path: Map<AssetId, Url>
+  + deps: DepGraph
+  + assets: u8[0..*]
+  --
+  impl AssetDatabase
+}
+PackedAsset "1" --* "1" PackedAssetSource
+
+class PackedAssetLoader <<struct>> {
+  impl Loader
+}
+
+!endsub
+
+() Source
+PackedAssetSource .^ Source
+
+() AssetDatabase
+PackedAsset ..^ AssetDatabase
+
+() Loader
+PackedAssetLoader ..^ Loader
+
+@enduml

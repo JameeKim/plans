@@ -1,0 +1,54 @@
+@startuml Importer
+
+!include ../style.pu
+
+MODULE_TITLE("importer")
+
+!startsub IMPORTER
+
+abstract Importer <<traitObject>> {
+  where Self: Serialize + Deserialize + TypeUuid
+  --
+  + {abstract} {static} const FORMATS: &[&str]
+  + {abstract} {static} type Options: ImporterOptions
+  + {abstract} async import(\n  &self,\n  options: &Self::Options,\n  metadata: &AssetObjectMetadata?,\n  bytes: dyn AsyncRead,\n): [ImportedAsset]?
+}
+
+abstract ImporterOptions <<traitObject>> {
+  where Self: Clone + Default
+  where Self: Serialize + Deserialize + TypeUuid
+}
+Importer "uses" --> "used" ImporterOptions
+
+class ImporterId <<dataType>> {
+  - 0: Uuid
+  --
+  + {static} of<I: Importer>(): Self
+}
+Importer "impl" ||--|| ImporterId
+
+class ImportedAsset <<dataType>> {
+  + metadata: AssetMetadata
+  + asset: dyn Asset
+}
+Importer "creates" --> "created" ImportedAsset
+
+class ImporterRegistry <<struct>> {
+  - importers: Map<ImporterId, dyn Importer>
+  - format_to_importer: Map<&str, ImporterId>
+  --
+  + register<I: Importer>(&mut self, importer: I)
+  + resolve(&self, format: &str): ImporterId?
+  + get(&self, id: ImporterId): &dyn Importer?
+}
+Importer "0..*\nBoxed" --* "1" ImporterRegistry
+
+!endsub
+
+() AssetObjectMetadata
+Importer "uses" --> "used" AssetObjectMetadata
+
+() ImportManager
+ImporterRegistry "1" --* "1" ImportManager
+
+@enduml

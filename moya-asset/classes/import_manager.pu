@@ -1,0 +1,52 @@
+@startuml ImportManager
+
+!include ../style.pu
+
+MODULE_TITLE("import_manager")
+
+!startsub IMPORT_MANAGER
+
+class ImportManager <<struct>> {
+  - sources: SourceRegistry
+  - importers: ImporterRegistry
+  - db: dyn AssetDatabase
+  --
+  + {static} async new<DB: AssetDatabase>(db: DB): Self?
+  + async get(&self, id: AssetId): &[u8]?
+  + async process(&self): ()? {\n  // call `get_events` on `self.sources`\n  // call appropriate `process_*` methods\n}
+  --
+  - async process_added(&self, added: SourceEvent): ()? {\n  // call `Source::read` and get bytes\n  // resolve importer using the format\n  // create default import options\n  // call `Importer::import`\n  // save in db\n}
+  - async process_modified(&self, modified: SourceEvent): ()?
+  - async process_removed(&self, removed: SourceEvent): ()?
+  - async process_renamed(&self, renamed: SourceEvent): ()?
+  - async process_init(&self, init: SourceEvent): ()?
+}
+ImportManager "1" --* "1" ImportLoader
+
+class ImportLoader <<struct>> {
+  - import: ImportManager
+  - req: Receiver<AssetId>
+  - res: Sender<LoadedAsset>
+  --
+  + async new<DB>(db: DB): Self?\nwhere\n  DB: AssetDatabase
+  + async process(&self): ()? {\n  self.import.process()?;\n  for id in self.req.try_iter() {\n    let bytes = get bytes for asset with id;\n    let asset = bincode::deserialize(bytes)?;\n    self.res.send(LoadedAsset { id, asset });\n  }\n}
+  --
+  impl Loader
+  + async load(&self, id: AssetId): dyn Asset? {\n  let bytes = self.import.get(id)?;\n  bincode::deserialize(bytes)\n}
+}
+
+!endsub
+
+() Loader
+Loader ^.. ImportLoader
+
+() AssetDatabase
+ImportManager "1" --* "1\nBoxed" AssetDatabase
+
+() SourceRegistry
+ImportManager "1" --* "1" SourceRegistry
+
+() ImporterRegistry
+ImportManager "1" --* "1" ImporterRegistry
+
+@enduml

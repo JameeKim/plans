@@ -1,0 +1,43 @@
+@startuml SerdeImporters
+
+!include ../style.pu
+
+MODULE_TITLE("serde_importers")
+
+!startsub SERDE_IMPORTERS
+
+class RonImporter <<struct>> {
+  impl Importer
+  + {static} const FORMATS = &["ron"]
+  + {field} {static} type Options = ()
+}
+note bottom of RonImporter
+cfg(feature = "importer-ron")
+end note
+
+class JsonImporter <<struct>> {
+  impl Importer
+  + {static} const FORMATS = &["json"]
+  + {field} {static} type Options = ()
+}
+note bottom of JsonImporter
+cfg(feature = "importer-json")
+end note
+
+class BincodeImporter <<struct>> {
+  impl Importer
+  + {static} const FORMATS = &["bin", "bincode"]
+  + {field} {static} type Options = ()
+}
+note bottom of BincodeImporter
+cfg(feature = "importer-bincode")
+end note
+
+!endsub
+
+() Importer
+Importer ^.. RonImporter
+Importer ^.. JsonImporter
+Importer ^.. BincodeImporter
+
+@enduml

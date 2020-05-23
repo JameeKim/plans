@@ -1,5 +1,9 @@
 * text=auto
 
 LICENSE text
+*.json text
 *.md text
+*.pu text
 .editorconfig text
+
+*.png binary

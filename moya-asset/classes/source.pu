@@ -1,0 +1,89 @@
+@startuml Source
+
+!include ../style.pu
+
+MODULE_TITLE("source")
+
+!startsub SOURCE
+
+abstract Source <<traitObject>> {
+  where Self: Serialize + Deserialize + TypeUuid
+  --
+  + {static} const SCHEMES: &[&str]
+  + {abstract} supports_path(&self, path: &Url): bool
+  + {abstract} async read(&self, path: &Url): ReadAssetObject?
+  + {abstract} async get_metadata(&self, path: &Url): AssetObjectMetadata?
+  + {abstract} async get_events(&self): [SourceEventData]?
+  --
+  + {abstract} async save_metadata(&self, path: &Url, metadata: AssetObjectMetadata): ()?
+}
+
+note "cfg(feature = 'auto-import')" as NFeatureSource
+NFeatureSource .> Source::save_metadata
+
+class ReadAssetObject <<dataType>> {
+  + format: String
+  + assetObject: dyn AsyncRead
+}
+Source "creates" --> "created" ReadAssetObject
+
+class SourceEventData <<dataType>> {
+  + ty: SourceEventType
+  + path: Url
+  + time: Time
+}
+Source "creates" --> "created" SourceEventData
+
+enum SourceEventType <<dataTypeEnum>> {
+  Added
+  Modified
+  Removed
+  {field} Renamed {\n  before: Url,\n  after: Url,\n}
+  {field} Init(Option<AssetObjectMetadata>)
+}
+SourceEventType "1" --* "1" SourceEventData
+
+class SourceEvent <<dataType>> {
+  + source: SourceId
+  + data: SourceEventData
+}
+SourceEventData "1" --* "1" SourceEvent
+
+class SourceId <<dataType>> {
+  - 0: usize
+}
+Source ||--|| SourceId
+
+class SourceRegistry <<struct>> {
+  - sources: Map<SourceId, dyn Source>
+  - scheme_to_source: Map<&str, SourceId>
+  --
+  + register<S: Source>(&mut self, source: S): SourceId
+  + async get_events(&self, events: &SegQueue<SourceEvent>): ()? [Error]
+  + async read(&self, path: &Url): ReadAssetObject? {\n  let source = resolve source;\n  source.read(path)\n}
+  + async read_from(&self, id: SourceId, path: &Url): ReadAssetObject? {\n  self.sources.get(id)?.read(path)\n}
+}
+Source "0..*\nBoxed" --* "1" SourceRegistry
+SourceRegistry "creates" --> "created" SourceEvent
+SourceId "0..*" --* "1" SourceRegistry
+
+class DirectorySource <<struct>> implements Source
+class DirectorySource {
+  - name: String
+  --
+  + {static} async new(name: &str, path: &Path): Self?
+  --
+  impl Source
+  + {static} const SCHEMES = &["file", "x-moya-dir", "x-moya-file"]
+  + supports_path(&self, path: &Url): bool {\n  path.host() == &self.name\n}
+}
+
+!endsub
+
+() ImportManager
+SourceRegistry "1" --* "1" ImportManager
+
+() PackedAssetSource
+Source ^.. PackedAssetSource
+
+@enduml

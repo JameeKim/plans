@@ -1,0 +1,136 @@
+@startuml ImportLoaderTimeline
+
+!include ../style.pu
+
+title
+""ImportLoader"" Process Timeline - v0.1.0
+end title
+
+box "Game Loop"
+  participant "Asset\nUser" as User
+  participant "Asset\nStorage" as Storage
+end box
+
+box "Import Loop"
+  participant "Import\nLoader" as Loader
+  participant "Import\nManager" as Importer
+  participant "Asset\nDatabase" as DB
+  participant "Asset\nSource" as Source
+end box
+
+...
+
+== Game Loop ==
+User -> Storage : Load request
+Storage --> User : Handle
+note right
+  Immediate return
+end note
+Storage -> Loader : Load request
+...
+User -> Storage : Get asset\nusing the handle
+Storage --> User : ""None""
+note right
+  Asset not loaded yet
+  Returns ""None""
+end note
+
+...
+
+== Import Loop ==
+Loader -> Importer ++ #LightGreen : Process start
+  Importer -> Source ++ : Process start
+    note over Source
+      Scan and
+      detect
+      changes
+    end note
+  Source --> Importer -- : Change events
+  alt added
+    Importer -> Source : Read saved assets
+    Source --> Importer : Assets saved bytes
+    note over Importer
+      Resolve importer
+      Import assets
+    end note
+    par
+      Importer -> DB : Save assets\nand metadata
+      Importer -> Source : Save metadata
+    end
+  else modified
+    par
+      Importer -> Source : Read saved assets
+      Importer -> DB : Get metadata
+    end
+      DB --> Importer : Metadata
+      Source --> Importer : Assets saved bytes
+    note over Importer
+      Import assets
+    end note
+    Importer -> DB : Save assets
+  else renamed / format unchanged
+    Importer -> DB : Change path data
+  else renamed / format changed
+    note over Importer
+      Resolve importer
+      Stop if same importer
+    end note
+    Importer -> Source : Read saved assets
+    Source --> Importer : Assets saved bytes
+    note over Importer
+      Import assets
+    end note
+    par
+      Importer -> DB : Change path data
+      Importer -> DB : Save assets\nand metadata
+      Importer -> Source : Save metadata
+    end
+  else removed
+    par
+      Importer -> DB : Clear assets\nand metadata
+      Importer -> Source : Clear any left metadata
+    end
+  else metadata changed
+    Importer -> Source : Read saved assets\nand metadata
+    Source --> Importer : Assets and metadata
+    note over Importer
+      Resolve importer
+      Import assets
+    end note
+    Importer -> DB : Save assets\nand metadata
+  end
+  Importer --> Loader -- : Process done
+Loader -> DB : Get requested and changed assets
+DB --> Loader : Assets
+Loader --> Storage : Requested and\nchanged assets
+
+...
+
+== Game Loop ==
+User -> Storage : Get asset
+Storage --> User : ""Some(Asset)""
+note right
+  Successfully returns
+  as it is now loaded
+end note
+...
+User -> Storage : Drop handle
+note right
+  Automatically signaled
+  when handle is dropped
+end note
+note over Storage
+  Remove asset
+  from memory
+end note
+Storage -> Loader : Asset removed
+note right
+  This notifies that the asset is no
+  longer in the storage so the loader
+  does not need to load any changes
+  into the storage
+end note
+
+...
+
+@enduml

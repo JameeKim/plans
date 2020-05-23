@@ -1,0 +1,32 @@
+@startuml Storage
+
+!include ../style.pu
+
+MODULE_TITLE("storage")
+
+!startsub STORAGE
+
+class Handle <<struct>> {}
+
+interface Storage <<traitObject>> {
+  + {abstract} get(&self, handle: &Handle): &dyn Asset?
+  + {abstract} load(&self, id: AssetId): Handle;
+}
+Handle "0..*" --* "1" Storage
+
+class StorageManager <<struct>> {
+  - storage: dyn Storage
+  - req: Sender<AssetId>
+  - res: Receiver<LoadedAsset>
+}
+Storage "1\nBoxed" --* "1" StorageManager
+
+!endsub
+
+() Asset
+Storage "1" *-- "0..*\nBoxed" Asset
+
+() Loader
+Loader <--> StorageManager : Request and get assets
+
+@enduml

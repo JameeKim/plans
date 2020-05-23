@@ -1,0 +1,122 @@
+@startuml PackedAssetLoaderTimeline
+
+!include ../style.pu
+
+title
+""PackedAssetLoader"" Process Timeline - v0.1.0
+end title
+
+box "Game Loop"
+  participant "Asset\nUser" as User
+  participant "Asset\nStorage" as Storage
+end box
+
+box "Import Loop"
+  participant "Loader" as Loader
+  participant "Source A" as SourceA
+  participant "Source B" as SourceB
+end box
+
+== Initialize ==
+note over SourceA
+  Default pack
+  Loaded at start
+end note
+Loader -> SourceA ** : Load
+SourceA --> Loader : Loaded
+note over Loader
+  Update asset
+  dependency graph
+end note
+
+...
+
+== Game Loop ==
+User -> Storage : Load request
+Storage --> User : Handle
+note right
+  Immediate return
+end note
+Storage -> Loader : Load request
+...
+' User -> Storage : Explicit load request\nof asset pack C
+' Storage -> Loader : Request load\nof asset pack C
+' ...
+User -> Storage : Get asset\nusing the handle
+Storage --> User : ""None""
+note right
+  Asset not loaded yet
+  Returns ""None""
+end note
+
+...
+
+== Import Loop ==
+Loader -> Loader ++ #LightGreen : Process start
+  note over Loader
+    Analyze dependencies
+    of the requested asset
+  end note
+  Loader -> SourceB ** : Load asset pack B
+  note left
+    Let's say that the requested
+    asset needs asset pack B
+  end note
+  SourceB --> Loader : Loaded
+  note over Loader
+    Update asset
+    dependency graph
+  end note
+  Loader --> Storage : Requested assets
+Loader --> Loader -- : Process\nfinished
+
+...
+
+== Game Loop ==
+User -> Storage : Get asset
+Storage --> User : ""Some(Asset)""
+note right
+  Successfully returns
+  as it is now loaded
+end note
+...
+User -> Storage : Drop handle
+note right
+  Automatically signaled
+  when handle is dropped
+end note
+note over Storage
+  Remove asset
+  from memory
+end note
+Storage -> Loader : Asset removed
+note right
+  This notifies that the asset is
+  no longer in the storage so
+  the loader can unload any
+  asset packs that are not
+  needed anymore
+end note
+
+...
+
+== Import Loop ==
+Loader -> Loader ++ #LightGreen : Process start
+  note over Loader
+    Analyze dependencies
+    of the requested asset
+  end note
+  Loader -> SourceB !! : Unload
+  note left
+    Let's say that the asset
+    pack B is no longer needed
+  end note
+  note over Loader
+    Update asset
+    dependency graph
+  end note
+Loader --> Loader -- : Process\nfinished
+
+...
+
+@enduml

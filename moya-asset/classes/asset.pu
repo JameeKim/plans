@@ -1,0 +1,79 @@
+@startuml Asset
+
+!include ../style.pu
+
+MODULE_TITLE("asset")
+
+!startsub ASSET
+
+abstract Asset <<traitObject>> {
+  where Self: Serialize + Deserialize + TypeUuid
+}
+
+class AssetId <<dataType>> {
+  - 0: Uuid
+}
+Asset ||--|| AssetId
+
+class AssetTypeId <<dataType>> {
+  - 0: Uuid
+  + {static} of<A: Asset>(): Self
+}
+Asset "impl" ||--|| AssetTypeId
+
+class AssetObjectMetadata <<dataType>> {
+  + importer_id: ImporterId
+  + importer_options: dyn ImporterOptions
+  + assets: AssetMetadata[0..*]
+  --
+  impl Serialize + Deserialize
+}
+
+class AssetMetadata <<dataType>> {
+  + id: AssetId
+  + ty: AssetTypeId
+  + deps: AssetDependency[0..*]
+  --
+  impl Serialize + Deserialize
+}
+AssetMetadata "0..*" --* "1" AssetObjectMetadata
+Asset ||--|| AssetMetadata
+
+class AssetDependency <<dataType>> {
+  + id: AssetId
+  + ty: AssetTypeId
+  --
+  impl Serialize + Deserialize
+}
+AssetDependency "0..*" --* "1" AssetMetadata
+
+abstract AssetDatabase <<traitObject>> {
+  + {abstract} async get_asset(&self, id: AssetId): &[u8]?
+  + {abstract} async get_metadata(&self, id: AssetId): &AssetMetadata?
+  + async get_direct_deps(&self, id: AssetId): &[AssetDependency]? {\n  &self.get_metadata(id).deps\n}
+  + async get_deps(&self, id: AssetID): [AssetDependency]? {\n  // crude implementation using a HashSet\n}
+  --
+  + {abstract} async store_asset(&self, id: AssetId, bytes: &[u8]): ()?
+  + {abstract} async store_metadata(&self, id: AssetId, data: AssetMetadata): ()?
+  + {abstract} async store_id_to_path(&self, id: AssetId, path: Url): ()?
+  + {abstract} async remove_asset(&self, id: AssetId): ()?
+}
+
+note "cfg(feature = 'auto-import')" as NFeatureAssetDatabase
+NFeatureAssetDatabase .> AssetDatabase::store_asset
+
+!endsub
+
+() Importer
+Importer "uses" --> "used" AssetObjectMetadata
+
+() Storage
+Asset "0..*\nBoxed" --* "1" Storage
+
+() ImportManager
+AssetDatabase "1\nBoxed" --* "1" ImportManager
+
+() PackedAsset
+AssetDatabase ^.. PackedAsset
+
+@enduml

@@ -1,0 +1,23 @@
+hide empty members
+skinparam BackgroundColor #FFFFFF
+skinparam DefaultFontSize 12
+skinparam DefaultFontName Hack FC Ligatured CCG
+skinparam ClassBackgroundColor<<dataType>> Cornsilk
+skinparam ClassBackgroundColor<<dataTypeEnum>> Cornsilk
+skinparam Shadowing false
+skinparam SpotChar<<dataType>> S
+skinparam SpotChar<<struct>> S
+skinparam SpotChar<<trait>> T
+skinparam SpotChar<<traitObject>> T
+skinparam StereotypeABackgroundColor #0ED38B
+skinparam StereotypeCBackgroundColor #66D9EF
+skinparam StereotypeEBackgroundColor #4186F8
+skinparam StereotypeIBackgroundColor #0ED38B
+skinparam TitleFontSize 24
+
+!procedure MODULE_TITLE($mod)
+title
+**Assets Management System**
+""$mod"" - v0.1.0
+end title
+!endprocedure

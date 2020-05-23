@@ -1,0 +1,30 @@
+@startuml Loader
+
+!include ../style.pu
+
+MODULE_TITLE("loader")
+
+!startsub LOADER
+
+abstract Loader <<trait>> {
+  + {abstract} async load(&self, id: AssetId): &[u8]?
+}
+
+class LoadedAsset <<dataType>> {
+  + id: AssetId
+  + asset: dyn Asset
+}
+Loader "uses" --> "used" LoadedAsset
+
+!endsub
+
+() StorageManager
+Loader <-> StorageManager : Request and get assets
+
+() ImportLoader
+Loader ^.. ImportLoader
+
+() PackedAssetLoader
+Loader ^.. PackedAssetLoader
+
+@enduml

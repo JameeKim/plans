@@ -1,0 +1,53 @@
+@startuml AssetsSystemClasses
+
+!include style.pu
+
+title
+**Assets Management System Class Diagram** - v0.1.0
+end title
+
+package source {
+  !includesub classes/source.pu!SOURCE
+}
+
+package importer {
+  !includesub classes/importer.pu!IMPORTER
+}
+
+package serde_importers {
+  !includesub classes/serde_importers.pu!SERDE_IMPORTERS
+}
+Importer ^.. RonImporter
+Importer ^.. JsonImporter
+Importer ^.. BincodeImporter
+
+package asset {
+  !includesub classes/asset.pu!ASSET
+}
+Importer "uses" --> "used" AssetObjectMetadata
+
+package loader {
+  !includesub classes/loader.pu!LOADER
+}
+
+package storage {
+  !includesub classes/storage.pu!STORAGE
+}
+Asset "0..*\nBoxed" --* "1" Storage
+StorageManager <--> Loader : Request and get assets
+
+package import_manager {
+  !includesub classes/import_manager.pu!IMPORT_MANAGER
+}
+AssetDatabase "1\nBoxed" --* "1" ImportManager
+SourceRegistry "1" --* "1" ImportManager
+ImporterRegistry "1" --* "1" ImportManager
+
+package packed_asset {
+  !includesub classes/packed_asset.pu!PACKED_ASSET
+}
+Source ^.. PackedAssetSource
+AssetDatabase ^.. PackedAsset
+Loader ^.. PackedAssetLoader
+
+@enduml
